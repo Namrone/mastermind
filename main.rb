@@ -1,7 +1,7 @@
 require 'colorize'
 
 class Mastermind
-  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key
+  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct
 
   def initialize
     @board = Array.new(12){['X','X','X','X']}
@@ -17,6 +17,11 @@ class Mastermind
     @who_player = nil
     @game_finished = false
     @current_row = 0
+    @computer_color_list = @colors
+    @computer_passed_colors = Hash.new
+    @computer_guesses = Array.new(4){Array.new(4)}
+    @prev_amount_correct = 0
+    @current_amount_correct = 0
   end
 
   def which_player
@@ -48,14 +53,55 @@ class Mastermind
     end
   end
 
-  def get_guess
-    @letter_key = @empty_key.each_with_index.map do |peg, index| 
-      while peg == nil do
-        puts "What is your current guess of colors on peg #{index+1}. Please type the letter corresponding to the color of your choice (see color key)."
-        peg = gets.chomp.upcase
-        @colors.include?(peg) ?  peg : peg = nil
+  def computer_logic
+    if @computer_guesses[1][1] == nil # <= initialize the 4 colors in the final answer into the matrix computer_guesses
+      @computer_passed_colors.each_with_index.map do |color, index|
+        @computer_guesses[0][index] = @computer_guesses[1][index-3] = @computer_guesses[2][index-2] = @computer_guesses[3][index-1] = color
       end
-      peg
+      @letter_key.each_with_index.map do |space,index| # <= Allow a baseline hint so computer logic can start narrowing colors down
+        space = @computer_guesses[index][0]
+        space
+      end
+    else
+      delta_correct = @current_amount_correct - @prev_amount_correct
+      while !delta_correct.positive?
+        if @current_amount_correct == 0 # <= removes values from guess matrix if none of them are in the correct position
+          @letter_key.each_with_index.map do |peg, index|
+            @computer_guesses[index].delete_at(@computer_guesses[index].index(peg))
+            @computer_guesses[index][0]
+          end
+        elsif delta_correct.negative? # <= switches back 2 changed guesses and tests one node at a time
+          @computer_guesses.each_with_index do |column, index|
+            if column.length > 1
+              position = column.index(@letter_key[index])
+              @letter_key[index] = column[position-1]
+            else
+              @letter_key[index] = column[0]
+            end
+          end
+        end
+      end
+    end
+  end
+
+  def get_guess
+    if @who_player
+      @letter_key = @empty_key.each_with_index.map do |peg, index| 
+        while peg == nil do
+          puts "What is your current guess of colors on peg #{index+1}. Please type the letter corresponding to the color of your choice (see color key)."
+          peg = gets.chomp.upcase
+          @colors.include?(peg) ?  peg : peg = nil
+        end
+        peg
+      end
+    else
+      if @computer_passed_colors.length == 4
+        
+      elsif @current_row < 8
+        @letter_key.map do
+          @color[@current_row]
+        end
+      end
     end
   end
 
@@ -81,9 +127,10 @@ class Mastermind
   def change_hints_color
     temp_answer = @answer_key.clone
     changed_key = Array.new(4)
+    randomize_hint = rand(2)
     changed_key = @letter_key.each_with_index.map do |peg, index|
       if peg == @answer_key[index]
-        @hints[@current_row].push('|'.colorize(:green))
+        randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:green)) : @hints[@current_row].unshift('|'.colorize(:green))
         temp_answer.delete_at(temp_answer.index(peg)) #<- removes color from the array it is being compared to so if mulitple same color is guessed but only answer key only has 1 guess then it won't change all the pegs to red
         peg = ''
       end
@@ -91,7 +138,7 @@ class Mastermind
     end
     changed_key.each_with_index.map do |peg, index| #<- finds if there's any colors in the guess & answer key but not in the right location
       if temp_answer.include?(peg)
-        @hints[@current_row].push('|'.colorize(:red))
+        randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:red)) : @hints[@current_row].unshift('|'.colorize(:red))
         temp_answer.delete_at(temp_answer.index(peg))
       end
     end
