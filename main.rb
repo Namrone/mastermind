@@ -53,6 +53,31 @@ class Mastermind
     end
   end
 
+  def delete_options(color) # <= Removes options from matrix once a color is found correct
+
+  end
+
+
+
+  def one_at_a_time(matrix) # <= finds the correct color between the two that switched
+    index = 0
+    found = false
+    while !found
+      position = matrix[index].index(@letter_key[index])
+      if matrix[index].length > 1
+        @letter_key[index] = matrix[index][position-1]
+        play_round
+        if @current_amount_correct > @prev_amount_correct
+          delete_options(@letter_key[index])
+          found = true
+        else
+          @letter_key[index] = matrix[index][position] # <= reverts the guess back if it's wrong
+        end 
+      end
+      index += 1
+    end
+  end
+
   def computer_logic
     if @computer_guesses[1][1] == nil # <= initialize the 4 colors in the final answer into the matrix computer_guesses
       @computer_passed_colors.each_with_index.map do |color, index|
@@ -70,15 +95,8 @@ class Mastermind
             @computer_guesses[index].delete_at(@computer_guesses[index].index(peg))
             @computer_guesses[index][0]
           end
-        elsif delta_correct.negative? # <= switches back 2 changed guesses and tests one node at a time
-          @computer_guesses.each_with_index do |column, index|
-            if column.length > 1
-              position = column.index(@letter_key[index])
-              @letter_key[index] = column[position-1]
-            else
-              @letter_key[index] = column[0]
-            end
-          end
+        elsif delta_correct.negative?
+          one_at_a_time(@computer_guesses)
         end
       end
     end
@@ -156,17 +174,21 @@ class Mastermind
     end
   end
 
+  def play_round #<= plays one round of the game
+    get_guess
+    convert_key
+    change_hints_color
+    add_key_to_board
+    game_end_test
+    print_board
+  end
+
   def play_game
     which_player
     puts "\n", @template
     get_answer_key
     while !@game_finished
-      get_guess
-      convert_key
-      change_hints_color
-      add_key_to_board
-      game_end_test
-      print_board
+      play_round
     end
   end
 end
