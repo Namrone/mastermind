@@ -53,28 +53,34 @@ class Mastermind
     end
   end
 
-  def delete_options(color) # <= Removes options from matrix once a color is found correct
-
+  def delete_options(color, column) # <= Removes options from matrix once a color is found correct
+    @computer_guesses[]
   end
 
 
 
   def one_at_a_time(matrix) # <= finds the correct color between the two that switched
-    index = 0
+    index = tested = 0
     found = false
     while !found
-      position = matrix[index].index(@letter_key[index])
       if matrix[index].length > 1
+        position = matrix[index].index(@letter_key[index])
         @letter_key[index] = matrix[index][position-1]
-        play_round
-        if @current_amount_correct > @prev_amount_correct
-          delete_options(@letter_key[index])
-          found = true
+        if tested == 0 # <= if it's the first changed node it will test and if it is the correct one then it removes the color options from the matrix else the second changed node will be the correct one
+          play_round 
+          if @current_amount_correct > @prev_amount_correct 
+            delete_options(@letter_key[index], index)
+            found = true
+          else
+              @computer_guesses[index].delete_at(position-1) # <= removes the tested color from the corresponding index
+          end
         else
-          @letter_key[index] = matrix[index][position] # <= reverts the guess back if it's wrong
-        end 
+          delete_options(@letter_key[index],index)
+          found = true
+        end
       end
       index += 1
+      tested += 1
     end
   end
 
