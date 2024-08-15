@@ -53,11 +53,19 @@ class Mastermind
     end
   end
 
-  def delete_options(color, column) # <= Removes options from matrix once a color is found correct
-    @computer_guesses[]
+  def delete_options(color, position)
+    temp = @computer_guesses[position].clone
+    @computer_guesses.each_with_index.map do | column, index |
+      if position == index # <= removes all options besides the right color at the right position
+        spot = column.index(color)
+        temp.delete_at(spot)
+        temp.each { |c| column.delete_at(column.index(c))} 
+      else # <= removes the correct color option from other arrays in the matrix
+        first_instance = column.index(color)
+        column.delete_at(first_instance)
+      end
+    end
   end
-
-
 
   def one_at_a_time(matrix) # <= finds the correct color between the two that switched
     index = tested = 0
@@ -78,9 +86,9 @@ class Mastermind
           delete_options(@letter_key[index],index)
           found = true
         end
+        tested += 1
       end
       index += 1
-      tested += 1
     end
   end
 
