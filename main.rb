@@ -114,17 +114,31 @@ class Mastermind
       end
     else
       delta_correct = @current_amount_correct - @prev_amount_correct
-      while !delta_correct.positive?
-        if @current_amount_correct == 0 # <= removes values from guess matrix if none of them are in the correct position
-          @letter_key.each_with_index.map do |peg, index|
+      if !delta_correct.positive?
+        if @current_amount_correct == 0
+          @letter_key.each_with_index.map do |peg, index| # <= removes values from guess matrix if none of them are in the correct position
             @computer_guesses[index].delete_at(@computer_guesses[index].index(peg))
-            @computer_guesses[index][0]
+            peg = @computer_guesses[index][0]
           end
         elsif delta_correct.negative?
           one_at_a_time(@computer_guesses)
-
-        elsif delta_correct == 0
-
+          choose_next
+        else
+          choose_next
+        end
+      elsif delta_correct.positive?
+        if delta_correct == 1 && skip == false
+          one_at_a_time(@computer_guesses)
+          choose_next
+        elsif delta_correct == 2
+          count = 0
+          @computer_guesses.each_with_index do |array, index|
+            position = array.index(@letter_key[index])
+            if array.length > 1 && count < 2
+              delete_options(@letter_key[index], index)
+              count += 1
+            end
+          end
         end
       end
     end
