@@ -92,6 +92,17 @@ class Mastermind
     end
   end
 
+  def choose_next # <= changes only the next two possible elements
+    count = 0
+    @computer_guesses.each_with_index do |array, index|
+      position = array.index(@letter_key[index])
+      if array.length > 1 && count < 2
+        position == array.length ? position = -1 : position # <= wraps back to first element of the array 
+        @letter_key[index] = array[position + 1]
+        count += 1
+      end
+  end
+
   def computer_logic
     if @computer_guesses[1][1] == nil # <= initialize the 4 colors in the final answer into the matrix computer_guesses
       @computer_passed_colors.each_with_index.map do |color, index|
@@ -111,6 +122,9 @@ class Mastermind
           end
         elsif delta_correct.negative?
           one_at_a_time(@computer_guesses)
+
+        elsif delta_correct == 0
+
         end
       end
     end
