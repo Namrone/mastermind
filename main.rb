@@ -18,7 +18,7 @@ class Mastermind
     @game_finished = false
     @current_row = 0
     @computer_color_list = @colors
-    @computer_passed_colors = Hash.new
+    @computer_passed_colors = Array.new
     @computer_guesses = Array.new(4){Array.new(4)}
     @prev_amount_correct = 0
     @current_amount_correct = 0
@@ -53,6 +53,11 @@ class Mastermind
     end
   end
 
+  def find_position(array, index)
+    spot = array.index(@letter_key[index])
+    return spot
+  end
+
   def delete_options(color, position)
     temp = @computer_guesses[position].clone
     @computer_guesses.each_with_index.map do | column, index |
@@ -72,7 +77,7 @@ class Mastermind
     found = false
     while !found
       if matrix[index].length > 1
-        position = matrix[index].index(@letter_key[index])
+        position = find_position(matrix[index],index)
         @letter_key[index] = matrix[index][position-1]
         if tested == 0 # <= if it's the first changed node it will test and if it is the correct one then it removes the color options from the matrix else the second changed node will be the correct one
           play_round 
@@ -95,12 +100,13 @@ class Mastermind
   def choose_next # <= changes only the next two possible elements
     count = 0
     @computer_guesses.each_with_index do |array, index|
-      position = array.index(@letter_key[index])
+      position = find_position(array,index)
       if array.length > 1 && count < 2
         position == array.length ? position = -1 : position # <= wraps back to first element of the array 
         @letter_key[index] = array[position + 1]
         count += 1
       end
+    end
   end
 
   def computer_logic
@@ -133,7 +139,7 @@ class Mastermind
         elsif delta_correct == 2
           count = 0
           @computer_guesses.each_with_index do |array, index|
-            position = array.index(@letter_key[index])
+            position = find_position(array,index)
             if array.length > 1 && count < 2
               delete_options(@letter_key[index], index)
               count += 1
@@ -156,10 +162,10 @@ class Mastermind
       end
     else
       if @computer_passed_colors.length == 4
-        
+        computer_logic
       elsif @current_row < 8
-        @letter_key.map do
-          @color[@current_row]
+        @letter_key.each_with_index do |guess, index|
+          @letter_key[index] = @colors[@current_row]
         end
       end
     end
@@ -188,11 +194,15 @@ class Mastermind
     temp_answer = @answer_key.clone
     changed_key = Array.new(4)
     randomize_hint = rand(2)
+    @prev_amount_correct = @current_amount_correct
+    @current_amount_correct = 0
     changed_key = @letter_key.each_with_index.map do |peg, index|
       if peg == @answer_key[index]
         randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:green)) : @hints[@current_row].unshift('|'.colorize(:green))
         temp_answer.delete_at(temp_answer.index(peg)) #<- removes color from the array it is being compared to so if mulitple same color is guessed but only answer key only has 1 guess then it won't change all the pegs to red
         peg = ''
+        @computer_passed_colors.push(peg)
+        @current_amount_correct += 1
       end
       peg
     end
