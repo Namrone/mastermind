@@ -1,7 +1,7 @@
 require 'colorize'
 
 class Mastermind
-  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct
+  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round
 
   def initialize
     @board = Array.new(12){['X','X','X','X']}
@@ -22,6 +22,7 @@ class Mastermind
     @computer_guesses = Array.new(4){Array.new(4)}
     @prev_amount_correct = 0
     @current_amount_correct = 0
+    @skip_round
   end
 
   def which_player
@@ -80,7 +81,11 @@ class Mastermind
         position = find_position(matrix[index],index)
         @letter_key[index] = matrix[index][position-1]
         if tested == 0 # <= if it's the first changed node it will test and if it is the correct one then it removes the color options from the matrix else the second changed node will be the correct one
-          play_round 
+          convert_key
+          change_hints_color
+          add_key_to_board
+          game_end_test
+          print_board
           if @current_amount_correct > @prev_amount_correct 
             delete_options(@letter_key[index], index)
             found = true
@@ -99,8 +104,11 @@ class Mastermind
 
   def choose_next # <= changes only the next two possible elements
     count = 0
+    p @computer_guesses
     @computer_guesses.each_with_index do |array, index|
+      p array, index
       position = find_position(array,index)
+      p position
       if array.length > 1 && count < 2
         position == array.length ? position = -1 : position # <= wraps back to first element of the array 
         @letter_key[index] = array[position + 1]
@@ -114,10 +122,13 @@ class Mastermind
       @computer_passed_colors.each_with_index.map do |color, index|
         @computer_guesses[0][index] = @computer_guesses[1][index-3] = @computer_guesses[2][index-2] = @computer_guesses[3][index-1] = color
       end
-      @letter_key.each_with_index.map do |space,index| # <= Allow a baseline hint so computer logic can start narrowing colors down
-        space = @computer_guesses[index][0]
-        space
+      @letter_key.each_with_index do |space,index| # <= Allow a baseline hint so computer logic can start narrowing colors down
+        @letter_key[index] = @computer_guesses[index][0]
       end
+      @skip_round = 0
+    elsif @skip_round == 0
+      @skip_round += 1
+      choose_next
     else
       delta_correct = @current_amount_correct - @prev_amount_correct
       if !delta_correct.positive?
@@ -133,7 +144,7 @@ class Mastermind
           choose_next
         end
       elsif delta_correct.positive?
-        if delta_correct == 1 && skip == false
+        if delta_correct == 1
           one_at_a_time(@computer_guesses)
           choose_next
         elsif delta_correct == 2
@@ -192,16 +203,18 @@ class Mastermind
 
   def change_hints_color
     temp_answer = @answer_key.clone
-    changed_key = Array.new(4)
+    changed_key = @letter_key.clone
     randomize_hint = rand(2)
     @prev_amount_correct = @current_amount_correct
     @current_amount_correct = 0
-    changed_key = @letter_key.each_with_index.map do |peg, index|
+    changed_key.each_with_index.map do |peg, index|
       if peg == @answer_key[index]
         randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:green)) : @hints[@current_row].unshift('|'.colorize(:green))
         temp_answer.delete_at(temp_answer.index(peg)) #<- removes color from the array it is being compared to so if mulitple same color is guessed but only answer key only has 1 guess then it won't change all the pegs to red
+        if @computer_passed_colors.length < 4
+          @computer_passed_colors.push(peg) 
+        end
         peg = ''
-        @computer_passed_colors.push(peg)
         @current_amount_correct += 1
       end
       peg
