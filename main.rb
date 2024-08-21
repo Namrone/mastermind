@@ -66,7 +66,7 @@ class Mastermind
         spot = column.index(color)
         temp.delete_at(spot)
         temp.each { |c| column.delete_at(column.index(c))} 
-      else # <= removes the correct color option from other arrays in the matrix
+      elsif column.length > 1 # <= removes the correct color option from other arrays in the matrix
         first_instance = column.index(color)
         column.delete_at(first_instance)
       end
@@ -74,31 +74,36 @@ class Mastermind
   end
 
   def one_at_a_time(matrix) # <= finds the correct color between the two that switched
-    index = tested = 0
-    found = false
-    while !found
-      if matrix[index].length > 1
+    round = 1
+    tested = found = false
+    prev_index = prev_position = 0
+    @letter_key.each_with_index do | color, index |
+      if matrix[index].length > 1 && !found # <- finds the two changed colors and doesn't enter if it's not the first two
         position = find_position(matrix[index],index)
         @letter_key[index] = matrix[index][position-1]
-        if tested == 0 # <= if it's the first changed node it will test and if it is the correct one then it removes the color options from the matrix else the second changed node will be the correct one
+        if !tested
           convert_key
           change_hints_color
           add_key_to_board
           game_end_test
           print_board
-          if @current_amount_correct > @prev_amount_correct 
-            delete_options(@letter_key[index], index)
-            found = true
-          else
-              @computer_guesses[index].delete_at(position-1) # <= removes the tested color from the corresponding index
-          end
-        else
-          delete_options(@letter_key[index],index)
-          found = true
+          tested = true
         end
-        tested += 1
+        if round == 2
+          if @current_amount_correct > @prev_amount_correct # <- makes the first changed color the correct one
+            delete_options(@letter_key[prev_index], prev_index)
+            matrix[index].delete_at(position)
+            found = true
+          else 
+            delete_options(@letter_key[index],index) # <- makes the second changed color the correct one
+            matrix[prev_index].delete_at(prev_position)
+            found = true
+          end
+        end
+        round += 1
+        prev_position = position
+        prev_index = index
       end
-      index += 1
     end
   end
 
