@@ -55,7 +55,7 @@ class Mastermind
   end
 
   def find_position(array, index)
-    spot = array.index(@letter_key[index])
+    array.include?(@letter_key[index]) ? spot = array.index(@letter_key[index]) : spot = 0 
     return spot
   end
 
@@ -91,8 +91,8 @@ class Mastermind
         end
         if round == 2
           if @current_amount_correct > @prev_amount_correct # <- makes the first changed color the correct one
+            matrix[index].delete_at(position-1)
             delete_options(@letter_key[prev_index], prev_index)
-            matrix[index].delete_at(position)
             found = true
           else 
             delete_options(@letter_key[index],index) # <- makes the second changed color the correct one
@@ -111,10 +111,10 @@ class Mastermind
     count = 0
     p @computer_guesses
     @computer_guesses.each_with_index do |array, index|
-      p array, index
-      position = find_position(array,index)
-      p position
+      p array
       if array.length > 1 && count < 2
+        position = find_position(array,index)
+        p position
         position == array.length ? position = -1 : position # <= wraps back to first element of the array 
         @letter_key[index] = array[position + 1]
         count += 1
@@ -123,7 +123,7 @@ class Mastermind
   end
 
   def computer_logic
-    if @computer_guesses[1][1] == nil # <= initialize the 4 colors in the final answer into the matrix computer_guesses
+    if @computer_guesses[0][0] == nil # <= initialize the 4 colors in the final answer into the matrix computer_guesses
       @computer_passed_colors.each_with_index.map do |color, index|
         @computer_guesses[0][index] = @computer_guesses[1][index-3] = @computer_guesses[2][index-2] = @computer_guesses[3][index-1] = color
       end
