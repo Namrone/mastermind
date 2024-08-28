@@ -61,16 +61,18 @@ class Mastermind
 
   def delete_options(color, position)
     temp = @computer_guesses[position].clone
+    p @computer_guesses, color
     @computer_guesses.each_with_index.map do | column, index |
       if position == index # <= removes all options besides the right color at the right position
         spot = column.index(color)
         temp.delete_at(spot)
         temp.each { |c| column.delete_at(column.index(c))} 
       elsif column.length > 1 # <= removes the correct color option from other arrays in the matrix
-        first_instance = column.index(color)
-        column.delete_at(first_instance)
+        column.delete_at(column.index(color))
       end
     end
+    p 'second', @computer_guesses
+    p @letter_key
   end
 
   def one_at_a_time(matrix) # <= finds the correct color between the two that switched
@@ -91,12 +93,16 @@ class Mastermind
         end
         if round == 2
           if @current_amount_correct > @prev_amount_correct # <- makes the first changed color the correct one
-            matrix[index].delete_at(position-1)
+            if matrix[index].length > 1
+             matrix[index].delete_at(position-1)
+            end
             delete_options(@letter_key[prev_index], prev_index)
             found = true
           else 
             delete_options(@letter_key[index],index) # <- makes the second changed color the correct one
-            matrix[prev_index].delete_at(prev_position)
+            if matrix[prev_index].length > 1
+              matrix[prev_index].delete_at(prev_position)
+            end
             found = true
           end
         end
@@ -109,17 +115,22 @@ class Mastermind
 
   def choose_next # <= changes only the next two possible elements
     count = 0
-    p @computer_guesses
     @computer_guesses.each_with_index do |array, index|
-      p array
-      if array.length > 1 && count < 2
-        position = find_position(array,index)
-        p position
+      position = find_position(array,index)
+      if array.length > 1 && count < 2 # <= only changes 2 nodes at a time to test
         position == array.length ? position = -1 : position # <= wraps back to first element of the array 
-        @letter_key[index] = array[position + 1]
+        next_color = position
+        while @letter_key[index] == array[position]
+          next_color += 1
+          next_color == array.length ? next_color = 0 : next_color
+          @letter_key[index] = array[next_color]
+        end
         count += 1
+      else
+        @letter_key[index] = array[position]
       end
     end
+    p @letter_key
   end
 
   def computer_logic
