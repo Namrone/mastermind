@@ -1,7 +1,7 @@
 require 'colorize'
 
 class Mastermind
-  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round
+  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round, :only_two
 
   def initialize
     @board = Array.new(12){['X','X','X','X']}
@@ -23,6 +23,7 @@ class Mastermind
     @prev_amount_correct = 0
     @current_amount_correct = 0
     @skip_round
+    @only_two = false
   end
 
   def which_player
@@ -61,7 +62,6 @@ class Mastermind
 
   def delete_options(color, position)
     temp = @computer_guesses[position].clone
-    p @computer_guesses, color
     @computer_guesses.each_with_index.map do | column, index |
       if position == index # <= removes all options besides the right color at the right position
         spot = column.index(color)
@@ -71,8 +71,6 @@ class Mastermind
         column.delete_at(column.index(color))
       end
     end
-    p 'second', @computer_guesses
-    p @letter_key
   end
 
   def one_at_a_time(matrix) # <= finds the correct color between the two that switched
@@ -111,6 +109,7 @@ class Mastermind
         prev_index = index
       end
     end
+    p 'test'
   end
 
   def choose_next # <= changes only the next two possible elements
@@ -120,6 +119,9 @@ class Mastermind
       if array.length > 1 && count < 2 # <= only changes 2 nodes at a time to test
         position == array.length ? position = -1 : position # <= wraps back to first element of the array 
         next_color = position
+        if array.uniq.length == 2 # <= If only two elements in the array then goes straight to testing one at a time
+          @only_two = true
+        end
         while @letter_key[index] == array[position]
           next_color += 1
           next_color == array.length ? next_color = 0 : next_color
@@ -130,7 +132,6 @@ class Mastermind
         @letter_key[index] = array[position]
       end
     end
-    p @letter_key
   end
 
   def computer_logic
@@ -153,9 +154,10 @@ class Mastermind
             @computer_guesses[index].delete_at(@computer_guesses[index].index(peg))
             peg = @computer_guesses[index][0]
           end
-        elsif delta_correct.negative?
+        elsif delta_correct.negative? || @only_two == true
           one_at_a_time(@computer_guesses)
           choose_next
+          @only_two = false
         else
           choose_next
         end
@@ -223,6 +225,7 @@ class Mastermind
     randomize_hint = rand(2)
     @prev_amount_correct = @current_amount_correct
     @current_amount_correct = 0
+    p @current_row
     changed_key.each_with_index.map do |peg, index|
       if peg == @answer_key[index]
         randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:green)) : @hints[@current_row].unshift('|'.colorize(:green))
