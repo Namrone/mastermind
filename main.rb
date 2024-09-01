@@ -1,7 +1,7 @@
 require 'colorize'
 
 class Mastermind
-  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round, :only_two
+  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round, :only_two, :last_one
 
   def initialize
     @board = Array.new(12){['X','X','X','X']}
@@ -24,6 +24,7 @@ class Mastermind
     @current_amount_correct = 0
     @skip_round
     @only_two = false
+    @last_one = false
   end
 
   def which_player
@@ -107,9 +108,11 @@ class Mastermind
         round += 1
         prev_position = position
         prev_index = index
+        if @current_row == 12 # <= ends game if last row is to be printed in one_at_a_time
+          @last_one = true
+        end
       end
     end
-    p 'test'
   end
 
   def choose_next # <= changes only the next two possible elements
@@ -158,9 +161,8 @@ class Mastermind
           one_at_a_time(@computer_guesses)
           choose_next
           @only_two = false
-        else
-          choose_next
         end
+        choose_next
       elsif delta_correct.positive?
         if delta_correct == 1
           one_at_a_time(@computer_guesses)
@@ -225,7 +227,6 @@ class Mastermind
     randomize_hint = rand(2)
     @prev_amount_correct = @current_amount_correct
     @current_amount_correct = 0
-    p @current_row
     changed_key.each_with_index.map do |peg, index|
       if peg == @answer_key[index]
         randomize_hint == 0 ? @hints[@current_row].push('|'.colorize(:green)) : @hints[@current_row].unshift('|'.colorize(:green))
@@ -258,21 +259,19 @@ class Mastermind
     end
   end
 
-  def play_round #<= plays one round of the game
-    get_guess
-    convert_key
-    change_hints_color
-    add_key_to_board
-    game_end_test
-    print_board
-  end
-
   def play_game
     which_player
     puts "\n", @template
     get_answer_key
     while !@game_finished
-      play_round
+      get_guess
+      if !@last_one
+        convert_key
+        change_hints_color
+        add_key_to_board
+        game_end_test
+        print_board
+      end
     end
   end
 end
