@@ -57,82 +57,35 @@ class Mastermind
   end
 
   def find_position(array, index)
-    array.include?(@letter_key[index]) ? spot = array.index(@letter_key[index]) : spot = 0 
-    return spot
+    return array.include?(@letter_key[index]) ? array.index(@letter_key[index]) : 0
   end
 
   def delete_options(color, position)
+    pp color, position
     temp = @computer_guesses[position].clone
-    @computer_guesses.each_with_index.map do | column, index |
+    @computer_guesses.each_with_index.map do | array, index |
       if position == index # <= removes all options besides the right color at the right position
-        spot = column.index(color)
+        spot = array.index(color)
         temp.delete_at(spot)
-        temp.each { |c| column.delete_at(column.index(c))} 
-      elsif column.length > 1 # <= removes the correct color option from other arrays in the matrix
-        column.delete_at(column.index(color))
+        temp.each { |c| array.delete_at(array.index(c))} 
+      elsif array.length > 1 # <= removes the correct color option from other arrays in the matrix
+        array.delete_at(array.index(color)) if array.include?(color)
       end
     end
   end
 
-  def one_at_a_time(matrix) # <= finds the correct color between the two that switched
-    round = 1
-    tested = found = false
-    prev_index = prev_position = 0
-    @letter_key.each_with_index do | color, index |
-      if matrix[index].length > 1 && !found # <- finds the two changed colors and doesn't enter if it's not the first two
-        position = find_position(matrix[index],index)
-        @letter_key[index] = matrix[index][position-1]
-        if !tested
-          convert_key
-          change_hints_color
-          add_key_to_board
-          game_end_test
-          print_board
-          tested = true
+  def one_at_a_time(matrix) # <= changes the letter key one at a time
+    matrix.each_with_index do |array, index|
+      if array.length > 1
+        position = find_position(array, index) + 1
+        position = 0 if position == array.length
+        while array[position] == @letter_key[index] do # <= loops until new color is chosen
+          position += 1
         end
-        if round == 2
-          if @current_amount_correct > @prev_amount_correct # <- makes the first changed color the correct one
-            if matrix[index].length > 1
-             matrix[index].delete_at(position-1)
-            end
-            delete_options(@letter_key[prev_index], prev_index)
-            found = true
-          else 
-            delete_options(@letter_key[index],index) # <- makes the second changed color the correct one
-            if matrix[prev_index].length > 1
-              matrix[prev_index].delete_at(prev_position)
-            end
-            found = true
-          end
-        end
-        round += 1
-        prev_position = position
-        prev_index = index
-        if @current_row == 12 # <= ends game if last row is to be printed in one_at_a_time
-          @last_one = true
-        end
-      end
-    end
-  end
-
-  def choose_next # <= changes only the next two possible elements
-    count = 0
-    @computer_guesses.each_with_index do |array, index|
-      position = find_position(array,index)
-      if array.length > 1 && count < 2 # <= only changes 2 nodes at a time to test
-        position == array.length ? position = -1 : position # <= wraps back to first element of the array 
-        next_color = position
-        if array.uniq.length == 2 # <= If only two elements in the array then goes straight to testing one at a time
-          @only_two = true
-        end
-        while @letter_key[index] == array[position]
-          next_color += 1
-          next_color == array.length ? next_color = 0 : next_color
-          @letter_key[index] = array[next_color]
-        end
-        count += 1
-      else
         @letter_key[index] = array[position]
+          return
+      else
+        @letter_key[index] = array[0]
       end
     end
   end
@@ -145,39 +98,37 @@ class Mastermind
       @letter_key.each_with_index do |space,index| # <= Allow a baseline hint so computer logic can start narrowing colors down
         @letter_key[index] = @computer_guesses[index][0]
       end
-      @skip_round = 0
-    elsif @skip_round == 0
-      @skip_round += 1
-      choose_next
+      @skip_round = true
+    elsif @skip_round == true
+      @skip_round = false
+      one_at_a_time(@computer_guesses)
     else
       delta_correct = @current_amount_correct - @prev_amount_correct
+      puts "\nDelta Correct: #{delta_correct}"
+      pp @computer_guesses
+      pp @letter_key
       if !delta_correct.positive?
         if @current_amount_correct == 0
-          @letter_key.each_with_index.map do |peg, index| # <= removes values from guess matrix if none of them are in the correct position
-            @computer_guesses[index].delete_at(@computer_guesses[index].index(peg))
-            peg = @computer_guesses[index][0]
+          @letter_key.each_with_index do |peg, index| # <= removes values from guess matrix if none of them are in the correct position
+            @computer_guesses[index].delete(peg)
           end
-        elsif delta_correct.negative? || @only_two == true
-          one_at_a_time(@computer_guesses)
-          choose_next
-          @only_two = false
-        end
-        choose_next
-      elsif delta_correct.positive?
-        if delta_correct == 1
-          one_at_a_time(@computer_guesses)
-          choose_next
-        elsif delta_correct == 2
-          count = 0
+        elsif delta_correct.negative?
           @computer_guesses.each_with_index do |array, index|
-            position = find_position(array,index)
-            if array.length > 1 && count < 2
-              delete_options(@letter_key[index], index)
-              count += 1
+            if array.length > 1
+              delete_options(array[find_position(array,index)-1], index)
+              break
             end
           end
         end
+      elsif delta_correct.positive?
+        @computer_guesses.each_with_index do |array, index|
+          if array.length > 1
+            delete_options(@letter_key[index], index)
+            break
+          end
+        end
       end
+      one_at_a_time(@computer_guesses)
     end
   end
 
@@ -234,10 +185,8 @@ class Mastermind
         if @computer_passed_colors.length < 4
           @computer_passed_colors.push(peg) 
         end
-        peg = ''
         @current_amount_correct += 1
       end
-      peg
     end
     changed_key.each_with_index.map do |peg, index| #<- finds if there's any colors in the guess & answer key but not in the right location
       if temp_answer.include?(peg)
@@ -265,7 +214,7 @@ class Mastermind
     get_answer_key
     while !@game_finished
       get_guess
-      if !@last_one
+      if !@last_one || !@game_finished
         convert_key
         change_hints_color
         add_key_to_board
