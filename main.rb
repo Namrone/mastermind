@@ -1,7 +1,7 @@
 require 'colorize'
 
 class Mastermind
-  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round, :only_two, :last_one
+  attr_reader :board, :hints, :template, :colors, :empty_key, :answer_key, :player, :color_key, :letter_key, :who_player, :game_finished, :current_row, :key, :computer_color_list, :computer_passed_colors, :comptuer_answer_key, :computer_guesses, :current_amount_correct, :prev_amount_correct, :skip_round, :last_one
 
   def initialize
     @board = Array.new(12){['X','X','X','X']}
@@ -23,7 +23,6 @@ class Mastermind
     @prev_amount_correct = 0
     @current_amount_correct = 0
     @skip_round
-    @only_two = false
     @last_one = false
   end
 
@@ -61,7 +60,6 @@ class Mastermind
   end
 
   def delete_options(color, position)
-    pp color, position
     temp = @computer_guesses[position].clone
     @computer_guesses.each_with_index.map do | array, index |
       if position == index # <= removes all options besides the right color at the right position
@@ -104,9 +102,6 @@ class Mastermind
       one_at_a_time(@computer_guesses)
     else
       delta_correct = @current_amount_correct - @prev_amount_correct
-      puts "\nDelta Correct: #{delta_correct}"
-      pp @computer_guesses
-      pp @letter_key
       if !delta_correct.positive?
         if @current_amount_correct == 0
           @letter_key.each_with_index do |peg, index| # <= removes values from guess matrix if none of them are in the correct position
